@@ -1,16 +1,91 @@
 ﻿#include"my.h"
 
-int sockfd;//连接套接字描述符；
 
+#define FALSE 0
+#define TRUE  1
+
+int sockfd;//连接套接字描述符；
+char ip[256] = {0};
+int port = 0;
+
+typedef void* (*fun_SubThread)(void*); 
+
+
+int Error_Print(char* sError)
+{
+#ifndef _MINGW_
+	perror(sError);
+#else
+ 	printf(sError);  
+#endif
+	return FALSE;
+}
+int Thread_WaitQuit(int nId)
+{
+#ifndef _MINGW_
+	 pthread_join(nId, NULL);
+#else
+	HANDLE hThread=NULL;
+	hThread=OpenThread(0,0,nId);
+	if(!hThread) return FALSE;
+
+	WaitForSingleObject(hThread,INFINITE);
+	
+	CloseHandle(hThread);
+#endif
+	return TRUE;
+}
+int Thread_Create(fun_SubThread ThreadName) 
+{
+#ifndef _MINGW_
+	pthread_t tId;
+	if(pthread_create(&tId,NULL,ThreadName,NULL)) return FALSE;
+#else
+	int tId=0;
+	_beginthreadex(NULL,0,ThreadName,NULL,0,&tId);
+#endif
+	return tId;
+}
+
+void read_ip()
+{
+	FILE*fp = NULL;
+	fp = fopen("ip.txt", "r");
+	if(fp == NULL)
+	{
+		printf("read ip error!\n");
+		exit(0);
+	}
+	fscanf(fp,"%s%d",ip,&port);
+}
+int Socket_Create(int af,int type,int protocol)
+{
+	int sock=0;
+
+#ifdef _MINGW_
+	WSADATA wsaData ={0};
+	if(WSAStartup(MAKEWORD(2,2),&wsaData)) return Error_Print("socket error\n");
+	
+	sock=socket(af,type,protocol);
+    if (sock == INVALID_SOCKET) return Error_Print("socket error\n");
+#else
+
+	sock=socket(af,type,protocol);
+	if (sock == -1) return Error_Print("socket error\n");
+#endif
+
+	return sock;
+}
 int main()
 {
     int ret = -1;
-    
+   	 
     printf("与服务器正在连接...\n");
+	read_ip();
     ret = function();//客户端功能展开函数；
     if(ret != 0)
     {
-        perror("function error\n");
+        Error_Print("function error\n");
         return -1;
     }
     return 0;
@@ -22,44 +97,30 @@ int function()
     pthread_t tid1 = -1;//定义线程ID；
     pthread_t tid2 = -1;
     
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd == -1)
-    {
-        perror("socket error\n");
-        return -1;
-    }
     //IPv4地址族结构；
     struct sockaddr_in seraddr;
     memset (&seraddr, 0, sizeof(seraddr));
     seraddr.sin_family = AF_INET;
-    seraddr.sin_port = htons(5000);
-    inet_pton(AF_INET, "172.16.18.100", &seraddr.sin_addr.s_addr);//字节序转换；
-    //seraddr.sin_port = htons(8000);
-   // inet_pton(AF_INET, "172.16.16.10", &seraddr.sin_addr.s_addr);//字节序转换；
-    
+    seraddr.sin_port = htons(port);
+	seraddr.sin_addr.s_addr = inet_addr(ip);
+	
+	sockfd=Socket_Create(AF_INET,SOCK_STREAM,SOCKET_TCP);
+	
     ret = connect(sockfd, (struct sockaddr*)&seraddr, sizeof(seraddr));//连接；
     if(ret != 0)
     {
-        perror("connect error\n");
+        Error_Print("connect error\n");
         return -1;
     }
     printf("与服务器连接成功！\n");
-    ret = pthread_create(&tid1, NULL, write_ser, NULL);//创建往socket套接字写信息的线程；
-    if(ret != 0)
-    {
-        perror("pthread write error\n");
-        return -1;
-    }
-    
-    ret = pthread_create(&tid2, NULL, read_ser, NULL);//创建从socket套接字中读取信息的线程；
-    if(ret != 0)
-    {
-        perror("pthread read error\n");
-        return -1;
-    }
-    
-    pthread_join(tid1, NULL);//等待线程结束；
-    pthread_join(tid2, NULL);
+	
+	tid1=Thread_Create(write_ser);
+	if(!tid1)return Error_Print("create_thread Write Error");
+	tid2=Thread_Create(read_ser); 
+	if(!tid2)return Error_Print("create_thread Read  Error");
+
+    Thread_WaitQuit(tid1);//等待线程结束；
+    Thread_WaitQuit(tid2);
     return 0;
 }
 
@@ -87,7 +148,7 @@ void *write_ser()//写数据的线程函数；
         ret = read(0, data, sizeof(data)-1);//从标准输入中读取数据；
         if(ret == -1)
         {   
-            perror("write_ser read error\n");
+            Error_Print("write_ser read error\n");
             exit(0);
         }
         if(strncmp(data, "quit", sizeof("quit")-1)==0)
@@ -100,7 +161,7 @@ void *write_ser()//写数据的线程函数；
         ret = write(sockfd, buf, sizeof(QR_HEAD)+64);//把标准输入的数据写入到套接字里面；
         if(ret == -1)
         {
-            perror("write_ser write error\n");
+            Error_Print("write_ser write error\n");
             exit(0);
         }
     }
@@ -118,7 +179,7 @@ void *read_ser()//读数据的线程函数；
         ret = read(sockfd, buf, sizeof(buf)-1);
         if(ret < 0)
         {
-            perror("read_ser read error\n");
+            Error_Print("read_ser read error\n");
             exit(0);
         }
         else if(ret == 0)

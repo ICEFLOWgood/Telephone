@@ -1,18 +1,27 @@
-﻿#include<stdio.h>
-#include<stdlib.h>
-#include<errno.h>
-#include<assert.h>
-#include<string.h>
-#include<event2/event.h>
-#include<event2/bufferevent.h>
-#include<mysql/mysql.h>
-#include<time.h>
-#include <locale.h>
-#include<netinet/in.h>
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<pthread.h>
-
+﻿#ifndef _MINGW_
+	#include<stdio.h>
+	#include<stdlib.h>
+	#include<errno.h>
+	#include<assert.h>
+	#include<string.h>
+	#include<mysql/mysql.h>
+	#include<time.h>
+	#include <locale.h>
+	#include<netinet/in.h>
+	#include<sys/types.h>
+	#include<sys/socket.h>
+	#include<pthread.h>
+	#include<event2/event.h>
+	#include<event2/bufferevent.h>
+#define SOCKET_TCP 0
+#else
+	#include<stdio.h>
+	#include<stdlib.h>
+	#include<windows.h>
+	#include<time.h>
+#define SOCKET_TCP 6
+	typedef  int pthread_t;
+#endif
 #define HASH_TABLE_MAX_SIZE 10000//哈希数组大小；
 
 typedef struct Infor_Struct//员工信息结构体；
@@ -60,7 +69,10 @@ void hash_table_release();
 #define LISTEN_BACKLOG 32
 
 //函数的声明；
+#ifndef _MINGW_
 void do_accept(evutil_socket_t listener, short event, void*arg);
 void read_cb(struct bufferevent*bev, void*arg);
 void error_cb(struct bufferevent*bev, short event, void*arg);
 void write_cb(struct bufferevent*bev, void*arg);//暂时未使用；
+#endif
+
