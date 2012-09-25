@@ -9,8 +9,8 @@ MYSQL_ROW sqlrow;//保存返回的其中一列；
 
 void hash_table_init()//初始化哈希表大小和哈希数组；
 {
-    hash_table_size = 0;
-    memset(hashTable, 0, sizeof(HashNode*)*HASH_TABLE_MAX_SIZE);
+	hash_table_size = 0;
+	memset(hashTable, 0, sizeof(HashNode*)*HASH_TABLE_MAX_SIZE);
 }
 
 unsigned int hash_table_hash_str(const char*skey)//字符串哈希算法函数；
@@ -35,6 +35,9 @@ int main()//测试函数；
   //  char DBUserPassword[] = "IceFlow2012";
     init_hash_table();
     update_hash_table();
+
+
+
     printf("哈希表实际大小：%d\n", hash_table_size);
     char a[256];
     printf("请输入要查询的信息：");
@@ -52,7 +55,7 @@ int main()//测试函数；
 }
 */
 
-//free the memory of the hash table
+//释放hash表所欲节点的空间资源；
 void hash_table_release()//重载hash表数据之前，释放之前hash表资源；
 {
     int i;
@@ -164,6 +167,9 @@ void display_header()//建立哈希表；
             strcpy(NewInfor->privation, row[5]?row[5]:"NULL");
             strcpy(NewInfor->extension, row[6]?row[6]:"NULL");
             strcpy(NewInfor->emall, row[7]?row[7]:"NULL");
+
+
+
             
             hash_table_insert(row[i]?row[i]:"NULL", NewInfor);//给每一行的每一列进行hash算法，插入hash表；
         }
