@@ -11,13 +11,13 @@ int port = 0;
 typedef void* (*fun_SubThread)(void*); 
 
 
-int Error_Print(wchar_t* sError)
+int Error_Print(char* sError)
 {
 #ifndef _MINGW_
 //	perror(sError);
 #else
- 	wprintf(sError);
-	wprintf(L"ErrorCore == %d\n",GetLastError());
+ 	printf(sError);
+	printf("ErrorCore == %d\n",GetLastError());
 #endif
 	return FALSE;
 }
@@ -28,7 +28,7 @@ int Thread_WaitQuit(int nId)
 #else
 
 	HANDLE hThread=(HANDLE)nId;
-	if(WaitForSingleObject(hThread,INFINITE)) return Error_Print(L"WaitQuit");
+	if(WaitForSingleObject(hThread,INFINITE)) return Error_Print("WaitQuit");
 
 	CloseHandle(hThread);
 #endif
@@ -54,7 +54,7 @@ void read_ip()
 	fp = fopen("ip.txt", "r");
 	if(fp == NULL)
 	{
-		wprintf(L"read ip error!\n");
+		printf("read ip error!\n");
 		exit(0);
 	}
 	fscanf(fp,"%s%d",ip,&port);
@@ -65,18 +65,36 @@ int Socket_Create(int af,int type,int protocol)
 
 #ifdef _MINGW_
 	WSADATA wsaData ={0};
-	if(WSAStartup(MAKEWORD(2,2),&wsaData)) return Error_Print(L"socket error\n");
+	if(WSAStartup(MAKEWORD(2,2),&wsaData)) return Error_Print("socket error\n");
 	
 	sock=socket(af,type,protocol);
-    if (sock == INVALID_SOCKET) return Error_Print(L"socket error\n");
+    if (sock == INVALID_SOCKET) return Error_Print("socket error\n");
 #else
 
 	sock=socket(af,type,protocol);
-	if (sock == -1) return Error_Print(L"socket error\n");
+	if (sock == -1) return Error_Print("socket error\n");
 #endif
 
 	return sock;
 }
+
+int ReadLine(char* pBuf,int nSize)
+{
+	int nLen=0;
+	char c=0;
+	
+	do
+	{
+		c=getchar();
+		pBuf[nLen++]=c;
+	}while(c!='\n');
+	
+	return nLen;
+}
+
+
+
+
 int Socket_Read(int nSock,char* pBuf,int nSize)
 {
 	int ret;
@@ -85,7 +103,7 @@ int Socket_Read(int nSock,char* pBuf,int nSize)
 #else
 	if(nSock==0)
 	{
-		ret=scanf("%s",pBuf);
+		ret = ReadLine(pBuf,nSize);	
 	}
 	else
 	{
@@ -108,13 +126,13 @@ int Socket_Write(int nSock,char* pBuf,int nSize)
 int main()
 {
     int ret = -1;
-	setlocale( LC_ALL, "" );  	 
-    wprintf(L"与服务器正在连接...\n");
+	setlocale(LC_CTYPE,"zh_CN.UTF-8");
+	printf("与服务器正在连接...\n");
 	read_ip();
     ret = function();//客户端功能展开函数；
     if(ret != 0)
     {
-        Error_Print(L"function error\n");
+        Error_Print("function error\n");
         return -1;
     }
     return 0;
@@ -138,19 +156,19 @@ int function()
     ret = connect(sockfd, (struct sockaddr*)&seraddr, sizeof(seraddr));//连接；
     if(ret != 0)
     {
-        Error_Print(L"connect error\n");
+        Error_Print("connect error\n");
         return -1;
     }
-    wprintf(L"与服务器连接成功！\n");
+    printf("与服务器连接成功！\n");
 	
 	tid1=Thread_Create(write_ser);
-	if(!tid1)return Error_Print(L"create_thread Write Error");
+	if(!tid1)return Error_Print("create_thread Write Error");
 	tid2=Thread_Create(read_ser); 
-	if(!tid2)return Error_Print(L"create_thread Read  Error");
+	if(!tid2)return Error_Print("create_thread Read  Error");
 
     Thread_WaitQuit(tid1);//等待线程结束；
     Thread_WaitQuit(tid2);
-	wprintf(L"线程退出...");
+	printf("线程退出...");
     return 0;
 }
 
@@ -166,8 +184,8 @@ void *write_ser()//写数据的线程函数；
     int ret = -1;
     //循环往套接字里写入数据；
     fflush(stdin);
-    wprintf(L"查找支持：中文名、简拼、全拼、公司手机号、私人号码、分机号、邮箱！\n退出系统请输入：quit\n");
-    wprintf(L"input message:");
+    printf("查找支持：中文名、简拼、全拼、公司手机号、私人号码、分机号、邮箱！\n退出系统请输入：quit\n");
+    printf("input message:");
     while(1)
     {
         fflush(stdout);
@@ -178,7 +196,7 @@ void *write_ser()//写数据的线程函数；
         ret = Socket_Read(0, data, sizeof(data)-1);//从标准输入中读取数据；
         if(ret == -1)
         {   
-            Error_Print(L"write_ser read error\n");
+            Error_Print("write_ser read error\n");
             exit(0);
         }
         if(strncmp(data, "quit", sizeof("quit")-1)==0)
@@ -191,7 +209,7 @@ void *write_ser()//写数据的线程函数；
         ret =Socket_Write(sockfd, buf, sizeof(QR_HEAD)+64);//把标准输入的数据写入到套接字里面；
         if(ret == -1)
         {
-            Error_Print(L"write_ser write error\n");
+            Error_Print("write_ser write error\n");
             exit(0);
         }
     }
@@ -204,18 +222,17 @@ void *read_ser()//读数据的线程函数；
     //循环从socket套接字里读取数据，直至读取完毕；
     while(1)
     {
-        memset(buf, 0, sizeof(buf));
-
+        memset(buf, 0, sizeof(buf)); 
 		ret=Socket_Read(sockfd,buf,sizeof(buf)-1);
 
         if(ret < 0)
         {
-            Error_Print(L"read_ser read error\n");
+            Error_Print("read_ser read error\n");
             exit(0);
         }
         else if(ret == 0)
         {
-            wprintf(L"\nser end\n");
+            printf("\nser end\n");
             fflush(stdout);
             exit(0);
         }
@@ -228,14 +245,14 @@ void unpackage(char*buf)//解析查询结果数据包；
     QA_HEAD* change_buf;
     int number;//传回的信息的条数；
     change_buf = (QA_HEAD*)buf;
- // wprintf(L"\n******len %d\n******id %d\n", change_buf->package_len, change_buf->package_id);
+ // printf("\n******len %d\n******id %d\n", change_buf->package_len, change_buf->package_id);
     if(change_buf->package_id != 11)
     {
         return;
     }
     if(change_buf->package_len == 8)
     {
-        wprintf(L"你要查询的信息不存在！\n");
+        printf("你要查询的信息不存在！\n");
     }
     else
     {
@@ -243,7 +260,7 @@ void unpackage(char*buf)//解析查询结果数据包；
         
         while(number--)
         {
-            wprintf(L"你要查询的信息如下:\n姓名：%s\n简拼：%s\n全拼：%s\n公司电话：%s\n私人电话：%s\n分机号：%s\nEmail：%s\n",
+            printf("你要查询的信息如下:\n姓名：%s\n简拼：%s\n全拼：%s\n公司电话：%s\n私人电话：%s\n分机号：%s\nEmail：%s\n",
                                 ((INFOR*)(buf+sizeof(QA_HEAD)+number*224))->myname,
                                 ((INFOR*)(buf+sizeof(QA_HEAD)+number*224))->abbreviation,
                                 ((INFOR*)(buf+sizeof(QA_HEAD)+number*224))->full,
@@ -255,7 +272,7 @@ void unpackage(char*buf)//解析查询结果数据包；
         }
         
     }
-    wprintf(L"查找支持：中文名、简拼、全拼、公司手机号、私人号码、分机号、邮箱！\n退出系统请输入：quit\n");
-    wprintf(L"input message:");//提示输入数据；
+    printf("查找支持：中文名、简拼、全拼、公司手机号、私人号码、分机号、邮箱！\n退出系统请输入：quit\n");
+    printf("input message:");//提示输入数据；
     fflush(stdout);
 }
