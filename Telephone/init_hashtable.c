@@ -167,6 +167,7 @@ void display_header()//建立哈希表；
             
             hash_table_insert(row[i]?row[i]:"NULL", NewInfor);//给每一行的每一列进行hash算法，插入hash表；
         }
+        hash_table_insert("\n", NewInfor);//插入以“\n”为key值的节点，下面存放所有数据库信息；
     }
 }
 
@@ -212,14 +213,18 @@ HashNode** hash_table_lookup(char* skey)//查找哈希表数据；
 {
 
     int i;
-    for(i=0; i<strlen(skey); i++)//去掉字符串后的回车符号；
+    if(skey[0] != '\n')
     {
-        if(skey[i]=='\n')
+        for(i=0; i<strlen(skey); i++)//去掉字符串后的回车符号；
         {
-            skey[i]='\0';
-            break;
-        }      
+            if(skey[i]=='\n')
+            {
+                skey[i]='\0';
+                break;
+            }      
+        }
     }
+    
     i = 0;
     memset(hn, 0, sizeof(hn));
     unsigned int pos = hash_table_hash_str(skey) % HASH_TABLE_MAX_SIZE;//计算hash下标；
