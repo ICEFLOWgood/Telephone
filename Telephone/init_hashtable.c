@@ -200,6 +200,7 @@ void hash_table_insert(const char* skey, INFOR* nvalue)//向哈希表中插入�
         }
         pHead = pHead->pNext;
     }
+
     HashNode* pNewNode = (HashNode*)malloc(sizeof(HashNode));//为hash结构分配空间；
     memset(pNewNode, 0, sizeof(HashNode));
     
