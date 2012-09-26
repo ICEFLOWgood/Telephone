@@ -29,7 +29,7 @@ int main(int argc, char*argv[])
     
     if(listen(listener, LISTEN_BACKLOG) < 0)//监听；
     {
-        perror("listen");
+        perror("listen error\n");
         return 1;
     }
     printf("Listening...\n");

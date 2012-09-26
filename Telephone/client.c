@@ -16,6 +16,7 @@ int Error_Print(wchar_t* sError)
 #ifndef _MINGW_
 //	perror(sError);
 #else
+	
  	wprintf(sError);
 	wprintf(L"ErrorCore == %d\n",GetLastError());
 #endif
@@ -33,6 +34,7 @@ int Thread_WaitQuit(int nId)
 	CloseHandle(hThread);
 #endif
 	return TRUE;
+
 }
 int Thread_Create(fun_SubThread ThreadName) 
 {
